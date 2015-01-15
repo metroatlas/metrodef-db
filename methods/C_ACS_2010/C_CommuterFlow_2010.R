@@ -24,11 +24,6 @@ C_CommuterFlow_2010 <- function(d=TRUE)
   cLinks[c(1:10)] <- lapply(cLinks[c(1:10)], as.character)
 
   #Remove Puerto Rico/ Foreign Countries (Iraq, At Sea, Africa, etc.): where FIPS Code > 56
-  cLinks$ResFIPSNum <- lapply(cLinks$ResCountyFIPS, as.integer)
-  cLinks$WorkFIPSNum <- lapply(cLinks$WorkCuntyFIPS, as.integer)
-  cLinks <- cLinks[(cLinks$ResFIPSNum <= 56 | cLinks$WorkFIPSNum <= 56),]
+  cLinks <- cLinks[(as.numeric(cLinks$ResCountyFIPS) <= 56 | as.numeric(cLinks$WorkCountyFIPS) <= 56),]
 
-  #Drop extra columns used for processing
-  cLinks$ResFIPSNum <- NULL
-  cLinks$WorkFIPSNum <- NULL
 
