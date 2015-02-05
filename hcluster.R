@@ -1,7 +1,7 @@
 # Create function that makes commuting adjacency matrix for a given state, hierarchically clusters
 # the counties based on commuting pct, and then displays a simple node-edge visualization of the 
 # result for a desired number of clusters
-Cluster = function(state.name, census.data, type="single", num.clusters=10){
+Cluster = function(state.name, census.data, type="single", num.clusters=10, county.pop){
   
   # Gather commuting data only for particular state
   state.data = census.data[census.data$RES_State == state.name,]
@@ -12,7 +12,6 @@ Cluster = function(state.name, census.data, type="single", num.clusters=10){
   
   # Merge work and county names
   county.names = sort(union(res.county.names, wrk.county.names))
-  
   # Create adjacency matrix
   adj.mat = matrix( , nrow = length(county.names), ncol = length(county.names))
   adj.mat[,] = 0
@@ -24,12 +23,12 @@ Cluster = function(state.name, census.data, type="single", num.clusters=10){
     wrk.indx= which(county.names==state.data$WRK_County[i])
     adj.mat[res.indx, wrk.indx] = comm.pct
   }
-  
+
   # Strip adjacency matrix of columns/rows that are entirely zero (or close enough to zero)
   connected.rows = apply(adj.mat, 2, function(x){any(x>0.0001)})
   connected.cols = apply(adj.mat, 1, function(x){any(x>0.0001)})
   connected = connected.rows | connected.cols
-  
+
   # Collect subset of county.names
   labs = county.names[connected]
   indices = 1:length(county.names)
@@ -37,17 +36,16 @@ Cluster = function(state.name, census.data, type="single", num.clusters=10){
   adj.mat = adj.mat[connected,connected]
   colnames(adj.mat) = labs
   rownames(adj.mat) = labs
-  
   # Hierarchically cluster according to distances
-  links = HCluster(adj.mat, type, num.clusters,labs)
-  
+  links = HCluster(adj.mat, type, num.clusters,labs, county.pop)
+ 
   # Produce plot of the clusters
-  #ClusterViz(cluster.list, labs)
+  # ClusterViz(cluster.list, labs)
   
   return(links)
 }
 
-HCluster = function(adj.mat, type="single", num.clusters=10,labs) {
+HCluster = function(adj.mat, type="single", num.clusters=10, labs, county.pop) {
   # This function takes in an adjacency matrix between counties, a list of the
   # county names, and a 'type' argument which specifies how the clustering is to be performed.
   # Distances need not be recalculated in this function, only retreived from the adjacency matrix.
@@ -96,7 +94,7 @@ HCluster = function(adj.mat, type="single", num.clusters=10,labs) {
     }
   }
   # Make links list
-  links = ListLinks(cluster.list, labs, adj.mat, max.dist)
+  links = ListLinks(cluster.list, labs, adj.mat, max.dist, county.pop)
   return(links)
 }
 
@@ -116,32 +114,44 @@ ClusterViz = function(cluster.list, labs){
   vertex.label.cex=0.6, edge.arrow.size=0.15)
 }
 
-ListLinks = function(cluster.list, labs, adj.mat, dist.threshold){
+ListLinks = function(cluster.list, labs, adj.mat, dist.threshold, county.pop){
   links = list()
+  pops = rep(0,length(labs))
   Source = c()
   Target = c()
   Cluster.id = c()
+  Comm.pct = c()
+  s.population = c()
+  t.population = c()
+  
+  for(i in 1:length(labs)){
+    pops[i] = county.pop$April.1.2010.Census[county.pop$County == labs[i]][1]
+  }
+  
   for(i in 1:length(cluster.list)){
     curr.clust = unlist(cluster.list[[i]])
     for(j in 1:length(curr.clust)){
       for(k in 1:length(curr.clust))
         if(curr.clust[j] != curr.clust[k]){
-          if(adj.mat[curr.clust[j],curr.clust[k]] >= dist.threshold){
+          pct = adj.mat[curr.clust[j],curr.clust[k]]
+          if(pct >= dist.threshold){
             Source = c(Source, labs[curr.clust[j]])
             Target = c(Target, labs[curr.clust[k]])
             Cluster.id = c(Cluster.id, i)
-          } else if(adj.mat[curr.clust[k],curr.clust[j]] >= dist.threshold){
-            Source = c(Source, labs[curr.clust[k]])
-            Target = c(Target, labs[curr.clust[j]])
-            Cluster.id = c(Cluster.id, i)
+            Comm.pct = c(Comm.pct, pct)
+            s.population = c(s.population, pops[curr.clust[j]])
+            t.population = c(t.population, pops[curr.clust[k]])
           }
-        }
+      }
     }
   }
   
   links$"source" = Source
   links$"target" = Target
   links$"cluster" = Cluster.id
+  links$"pct" = Comm.pct
+  links$"srcpop" = s.population
+  links$"tarpop" = t.population
   
   return(links)
 }
