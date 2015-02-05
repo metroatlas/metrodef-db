@@ -1,13 +1,13 @@
 library(igraph)
 
-setwd("~/Desktop/BillLane_Research")
+setwd("~/Desktop/BillLane_Research/metrodef-db")
 dat = read.csv("clean.csv", fileEncoding="latin1")
 county.pop = read.csv("county_pop.csv", fileEncoding="latin1")
 
-county.pop$County = as.character(county.pop$County)
 county.pop$State = as.character(county.pop$State)
 # Remove leading space in state names
 county.pop$State = substr(county.pop$State, 2, nchar(county.pop$State))
+county.pop$County = paste(as.character(county.pop$County), ", ", as.character(county.pop$State), sep="")
 
 PadZeros = function(col, size) {
   # Convert column to string
@@ -38,13 +38,15 @@ for(i in 7:ncol(census.data)){
   census.data[,i] = as.character(census.data[,i])
 }
 dat_nomil = NULL
-
+census.data$RES_County = paste(census.data$RES_County, ", ", census.data$RES_State, sep="")
+census.data$WRK_County = paste(census.data$WRK_County, ", ", census.data$WRK_State, sep="")
 # Collect state names
 state.names = unique(census.data$RES_State)
 
 # Add percentage column to census.data
 num.pct = rep(0, nrow(census.data))
 moe.pct = rep(0,nrow(census.data))
+population = rep(0,nrow(census.data))
 for(i in 1:nrow(county.pop)){
   print(paste0("Processing Population of County ", i, " of 3143"))
   indices = intersect(which(census.data$RES_County == county.pop$County[i]), 
@@ -55,10 +57,13 @@ for(i in 1:nrow(county.pop)){
   num.pct[indices] = (census.data$Number[indices] / pop)
   
   moe.pct[indices] = (census.data$MOE[indices] / pop)
+  
+  population[indices] = pop
 }
 
 census.data$Number_PCT = num.pct
 census.data$MOE_PCT = moe.pct
+census.data$RES_pop = population
 
 # Create function that makes commuting adjacency matrix for a given state
 CMatrix = function(state.name, census.data, threshold=0.15, weights=FALSE){
