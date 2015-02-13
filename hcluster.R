@@ -64,10 +64,16 @@ HCluster = function(adj.mat, type="single", num.clusters=10, labs, county.pop) {
     for(i in 2:length(cluster.list)){
       for(j in 1:(i-1)){
         # Retrieve candidate clusters
-        cluster1 = cluster.list[[i]]
-        cluster2 = cluster.list[[j]]
+        cluster1 = unlist(cluster.list[[i]])
+        cluster2 = unlist(cluster.list[[j]])
         # Find distance between all of the members of the clusters
-        cluster.dist = adj.mat[unlist(cluster1),unlist(cluster2)]
+        cluster.dist = matrix(,nrow=length(cluster1), ncol=length(cluster2))
+        cluster.dist[,] = 0
+        for(k in length(cluster1)){
+          for(t in length(cluster2)){
+            cluster.dist[k,t] = adj.mat[cluster1[k],cluster2[t]]
+          }
+        }
         if(type == "single"){
           # In this case, our "distance" actually increases with similarity.
           # Thus, single linkage should consider the cluster-distance to be the maximum.
@@ -83,9 +89,14 @@ HCluster = function(adj.mat, type="single", num.clusters=10, labs, county.pop) {
     
     # Find index of maximum element of the distance matrix
     max.dist = max(dist.mat)
-    if(max.dist==0){return(cluster.list)}
+    print(length(cluster.list))
+    if(max.dist==0){
+      links = ListLinks(cluster.list, labs, adj.mat, max.dist, county.pop)
+      return(links)
+    }
     max.ind = which(dist.mat == max.dist, arr.ind=TRUE)
-    
+    print(max.ind)
+    print(max.dist)
     # Join "nearest" clusters
     for(m in 1:nrow(max.ind)){
       cluster.list[[max.ind[m,1]]] = list(cluster.list[[max.ind[m,1]]], cluster.list[[max.ind[m,2]]])
@@ -93,25 +104,10 @@ HCluster = function(adj.mat, type="single", num.clusters=10, labs, county.pop) {
       max.ind[max.ind >= max.ind[m,2]] = max.ind[max.ind >= max.ind[m,2]] - 1
     }
   }
+  
   # Make links list
   links = ListLinks(cluster.list, labs, adj.mat, max.dist, county.pop)
   return(links)
-}
-
-ClusterViz = function(cluster.list, labs){
-  adj.mat = matrix(,nrow=length(labs), ncol=length(labs))
-  adj.mat[,] = 0
-  for(i in 1:length(cluster.list)){
-    curr.clust = unlist(cluster.list[[i]])
-    for(j in 1:length(curr.clust)){
-      for(k in 1:length(curr.clust))
-        if(curr.clust[j] != curr.clust[k]){
-          adj.mat[curr.clust[j],curr.clust[k]] = 1
-        }
-    }
-  }
-  plot(graph.adjacency(adj.mat, mode="undirected"), vertex.size=10, vertex.label=labs,
-  vertex.label.cex=0.6, edge.arrow.size=0.15)
 }
 
 ListLinks = function(cluster.list, labs, adj.mat, dist.threshold, county.pop){
@@ -132,9 +128,9 @@ ListLinks = function(cluster.list, labs, adj.mat, dist.threshold, county.pop){
     curr.clust = unlist(cluster.list[[i]])
     for(j in 1:length(curr.clust)){
       for(k in 1:length(curr.clust))
-        if(curr.clust[j] != curr.clust[k]){
+        if(TRUE){
           pct = adj.mat[curr.clust[j],curr.clust[k]]
-          if(pct >= dist.threshold){
+          if(TRUE){
             Source = c(Source, labs[curr.clust[j]])
             Target = c(Target, labs[curr.clust[k]])
             Cluster.id = c(Cluster.id, i)
@@ -154,4 +150,20 @@ ListLinks = function(cluster.list, labs, adj.mat, dist.threshold, county.pop){
   links$"tarpop" = t.population
   
   return(links)
+}
+
+ClusterViz = function(cluster.list, labs){
+  adj.mat = matrix(,nrow=length(labs), ncol=length(labs))
+  adj.mat[,] = 0
+  for(i in 1:length(cluster.list)){
+    curr.clust = unlist(cluster.list[[i]])
+    for(j in 1:length(curr.clust)){
+      for(k in 1:length(curr.clust))
+        if(curr.clust[j] != curr.clust[k]){
+          adj.mat[curr.clust[j],curr.clust[k]] = 1
+        }
+    }
+  }
+  plot(graph.adjacency(adj.mat, mode="undirected"), vertex.size=10, vertex.label=labs,
+       vertex.label.cex=0.6, edge.arrow.size=0.15)
 }
