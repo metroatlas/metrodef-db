@@ -89,6 +89,7 @@ HCluster = function(adj.mat, type="single", num.clusters=10, labs, county.pop) {
     
     # Find index of maximum element of the distance matrix
     max.dist = max(dist.mat)
+    print(max.dist)
     print(length(cluster.list))
     if(max.dist==0){
       links = ListLinks(cluster.list, labs, adj.mat, max.dist, county.pop)
