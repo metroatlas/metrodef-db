@@ -1,3 +1,8 @@
+library(igraph)
+library(ggplot2)
+library(ggdendro)
+library(ape)
+
 # Create function that makes commuting adjacency matrix for a given state, hierarchically clusters
 # the counties based on commuting pct, and then displays a simple node-edge visualization of the 
 # result for a desired number of clusters
@@ -36,16 +41,52 @@ Cluster = function(state.name, census.data, type="single", num.clusters=10, coun
   adj.mat = adj.mat[connected,connected]
   colnames(adj.mat) = labs
   rownames(adj.mat) = labs
+
+  maxelement = max(adj.mat)
+  addmsize = ncol(adj.mat)
+  addmat<-  matrix(rep(maxelement,each=addmsize*addmsize),nr=68)
+  s = addmat - adj.mat
+  mi = min(s+10000*(s<=0))
+  smat <-  matrix(rep(mi,each=addmsize*addmsize),nr=68)
+  print('min:')
+  print(mi)
+  s = s - smat
+  #reversedist = as.dist(addmat - adj.mat)
+  reversedist = as.dist(s)
+  
+  #print(reversedist)
+  hc = hclust(reversedist, "single")
+  labelColors = c("#CDB380", "#036564", "#EB6841", "#EDC951")
+  categories = cutree(hc,k=20)
+  #plot(as.phylo(hc), type="unrooted")
+  #hc <- hclust(dist(USArrests), "ave")
+  x <- ggdendrogram(hc, rotate=FALSE, size=1)
+  plot(x)
+#   dhc <- as.dendrogram(hc)
+#   # Rectangular lines
+#   ddata <- dendro_data.dendrogram(dhc, type = "triangle")
+#   p <- ggplot(segment(ddata)) + 
+#     geom_segment(aes(x = x, y = y, xend = xend, yend = yend)) + 
+#     coord_flip() + 
+#     scale_y_reverse(expand = c(0.2, 0)) +
+#     theme_dendro()
+#   plot(p)
+  #plot(hc)
+  print(min(adj.mat))
+  print(max(addmat-adj.mat))
+  HCExport(hc, file_out="/Users/liezl/Desktop/calidata2.js")
+  
   # Hierarchically cluster according to distances
-  links = HCluster(adj.mat, type, num.clusters,labs, county.pop)
+  #links = HCluster(adj.mat, type, num.clusters,labs, county.pop)
  
   # Produce plot of the clusters
-  # ClusterViz(cluster.list, labs)
+  #ClusterViz(cluster.list, labs)
   
-  return(links)
+  #return(links)
+  return
 }
 
-HCluster = function(adj.mat, type="single", num.clusters=10, labs, county.pop) {
+HCluster = function(adj.mat, type="single", num.clusters=21, labs, county.pop) {
   # This function takes in an adjacency matrix between counties, a list of the
   # county names, and a 'type' argument which specifies how the clustering is to be performed.
   # Distances need not be recalculated in this function, only retreived from the adjacency matrix.
@@ -95,7 +136,9 @@ HCluster = function(adj.mat, type="single", num.clusters=10, labs, county.pop) {
   }
   # Make links list
   links = ListLinks(cluster.list, labs, adj.mat, max.dist, county.pop)
+  ClusterViz(cluster.list, labs)
   return(links)
+  
 }
 
 ClusterViz = function(cluster.list, labs){
@@ -155,3 +198,67 @@ ListLinks = function(cluster.list, labs, adj.mat, dist.threshold, county.pop){
   
   return(links)
 }
+
+library(rjson)
+require(rjson)
+#convert output from hclust into a nested JSON file
+
+HCExport<-function(hc, file_out){
+  
+  labels<-hc$labels
+  merge<-data.frame(hc$merge)
+  cd = cophenetic(hc)
+  #print(cd)
+  h = hc$height
+  print(h)
+  #FAILED - plot(cut(as.dendrogram(hc),h=0.41))
+  i_1 = which(as.matrix(cd)==h[1], arr.ind=T)
+#   print(i_1)
+#   print(colnames(as.matrix(cd))[i_1[1]])
+#   print(i_1[1])
+#   print(min(as.matrix(cd)[42,]))
+  
+   
+
+  
+  for (i in (1:nrow(merge))) {
+    
+    if (merge[i,1]<0 & merge[i,2]<0) {eval(parse(text=paste0("node", i, "<-list(name=\"node", i, "\", children=list(list(name=labels[-merge[i,1]]),list(name=labels[-merge[i,2]])))")))}
+    else if (merge[i,1]>0 & merge[i,2]<0) {eval(parse(text=paste0("node", i, "<-list(name=\"node", i, "\", children=list(node", merge[i,1], ", list(name=labels[-merge[i,2]])))")))}
+    else if (merge[i,1]<0 & merge[i,2]>0) {eval(parse(text=paste0("node", i, "<-list(name=\"node", i, "\", children=list(list(name=labels[-merge[i,1]]), node", merge[i,2],"))")))}
+    else if (merge[i,1]>0 & merge[i,2]>0) {eval(parse(text=paste0("node", i, "<-list(name=\"node", i, "\", children=list(node",merge[i,1] , ", node" , merge[i,2]," ))")))}
+  }
+  
+  eval(parse(text=paste0("JSON<-toJSON(node",nrow(merge), ")")))
+  
+  #wrap nested JSON file into d3 html
+  fileConn<-file(file_out)
+  writeLines(paste0("data='", JSON, "'"), fileConn)
+  close(fileConn)
+}
+
+
+
+
+
+
+Cluster('California', census.data, 'single', 42, county.pop)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -50,7 +50,7 @@ population = rep(0,nrow(census.data))
 for(i in 1:nrow(county.pop)){
   print(paste0("Processing Population of County ", i, " of 3143"))
   indices = intersect(which(census.data$RES_County == county.pop$County[i]), 
-            which(census.data$RES_State == county.pop$State[i]))
+                      which(census.data$RES_State == county.pop$State[i]))
   
   pop = county.pop$April.1.2010.Census[i]
   
