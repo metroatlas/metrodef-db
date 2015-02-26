@@ -4,11 +4,11 @@ library(ggdendro)
 library(ape)
 library(rjson)
 require(rjson)
-
+setwd("~/Desktop/GitHub/metrodef-db2/metrodef-db")
 # Create function that makes commuting adjacency matrix for a given state, hierarchically clusters
 # the counties based on commuting pct, and then displays a simple node-edge visualization of the 
 # result for a desired number of clusters
-Cluster = function(state.name, census.data, type="single", num.clusters=10, county.pop){
+Cluster = function(state.name, census.data, type="single", county.pop){
   
   # Gather commuting data only for particular state
   state.data = census.data[census.data$RES_State == state.name,]
@@ -65,10 +65,8 @@ Cluster = function(state.name, census.data, type="single", num.clusters=10, coun
   categories = cutree(hc,k=4)
 
   # uses the ape library to plot a radial dendrogram
-  pdf(file='/Users/Liezl/Desktop/' +state.name +'_radial.pdf', width=10, height=10)
-  #par(oma=c(0,0,0,0))
-  #par(mar=c(5,4,7,7))
-  par(mar=c(0,0,3,6))
+  pdf(file=paste0('radial/', state.name,'_radial.pdf'), width=20, height=20)
+  par(mar=c(4,1,3,6))
   plot(as.phylo(hc), type="fan", cex=0.8)
   dev.off()
 
@@ -118,9 +116,11 @@ HCExport<-function(hc, file_out){
 }
 
 
-
-Cluster('California', census.data, 'single', 42, county.pop)
-
+statenames = unique(census.data$RES_State)
+for(int i=0)
+Cluster('Maryland', census.data, 'single', county.pop)
+Cluster('California', census.data, 'single', county.pop)
+Cluster('Texas', census.data, 'single', county.pop)
 
 
 
