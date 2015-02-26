@@ -64,9 +64,15 @@ Cluster = function(state.name, census.data, type="single", num.clusters=10, coun
   labelColors = c("#CDB380", "#036564", "#EB6841", "#EDC951")
   categories = cutree(hc,k=4)
 
-  # uses the ape library
-  plot(as.phylo(hc), type="fan")
+  # uses the ape library to plot a radial dendrogram
+  pdf(file='/Users/Liezl/Desktop/' +state.name +'_radial.pdf', width=10, height=10)
+  #par(oma=c(0,0,0,0))
+  #par(mar=c(5,4,7,7))
+  par(mar=c(0,0,3,6))
+  plot(as.phylo(hc), type="fan", cex=0.8)
+  dev.off()
 
+  # uncomment this to plot a tree dendrogram 
   #ggd <- ggdendrogram(hc, rotate=TRUE, size=1)
   #plot(ggd)
 
@@ -76,8 +82,6 @@ Cluster = function(state.name, census.data, type="single", num.clusters=10, coun
   
   return
 }
-
-
 
 #convert output from hclust into a nested JSON file
 HCExport<-function(hc, file_out){  
