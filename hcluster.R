@@ -60,25 +60,35 @@ Cluster = function(state.name, census.data, type="single", county.pop){
   submat = matrix(rep(hc.mi,each=addmsize*addmsize),nr=addmsize)
   hc.dist = as.dist(s - submat)
   hc = hclust(hc.dist, "single")
+  return(hc)
+}
 
-  labelColors = c("#CDB380", "#036564", "#EB6841", "#EDC951")
-  categories = cutree(hc,k=4)
 
-  # uses the ape library to plot a radial dendrogram
-  pdf(file=paste0('radial/', state.name,'_radial.pdf'), width=20, height=20)
-  par(mar=c(4,1,3,6))
-  plot(as.phylo(hc), type="fan", cex=0.8)
-  dev.off()
-
-  # uncomment this to plot a tree dendrogram 
-  #ggd <- ggdendrogram(hc, rotate=TRUE, size=1)
-  #plot(ggd)
-
-  print(min(adj.mat))
-  print(max(addmat-adj.mat))
-  HCExport(hc, file_out="/Users/liezl/Desktop/calidata2.js")
-  
+PlotRadial = function(hc, file.path="") {  
+  if(file.path != "") {
+    # uses the ape library to plot a radial dendrogram
+    pdf(file=file.path, width=20, height=20)
+    par(mar=c(4,1,3,6))
+    plot(as.phylo(hc), type="fan", cex=0.8)
+    dev.off()
+  } else {
+    plot(as.phylo(hc), type="fan", cex=0.8)
+  }
   return
+}
+
+PlotTree = function(hc, file.path="") {
+  ggd <- ggdendrogram(hc, rotate=TRUE, size=1)
+  if(filePath != "") {
+    pdf(file=file.path, width=20, height=20)
+    plot(ggd)    
+    par(mar=c(4,1,3,6))
+    dev.off()
+  } else {
+    plot(ggd)
+  }
+  return
+
 }
 
 #convert output from hclust into a nested JSON file
@@ -117,13 +127,14 @@ HCExport<-function(hc, file_out){
 
 
 statenames = unique(census.data$RES_State)
-for(stName in statenames) {
-  Cluster(stName, census.data, 'single', county.pop)
+for(st.name in statenames) {
+  hc = Cluster(st.name, census.data, 'single', county.pop)
+  PlotRadial(hc, paste0('radial/', st.name,'_radial.pdf'))
+  HCExport(hc, paste0('hcexport/', st.name,'_hclust.json'))
 }
-# Cluster('Maryland', census.data, 'single', county.pop)
-# Cluster('California', census.data, 'single', county.pop)
-# Cluster('Texas', census.data, 'single', county.pop)
 
+# labelColors = c("#CDB380", "#036564", "#EB6841", "#EDC951")
+# categories = cutree(hc,k=4)
 
 
 
