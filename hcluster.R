@@ -117,10 +117,12 @@ HCExport<-function(hc, file_out){
 
 
 statenames = unique(census.data$RES_State)
-for(int i=0)
-Cluster('Maryland', census.data, 'single', county.pop)
-Cluster('California', census.data, 'single', county.pop)
-Cluster('Texas', census.data, 'single', county.pop)
+for(stName in statenames) {
+  Cluster(stName, census.data, 'single', county.pop)
+}
+# Cluster('Maryland', census.data, 'single', county.pop)
+# Cluster('California', census.data, 'single', county.pop)
+# Cluster('Texas', census.data, 'single', county.pop)
 
 
 
