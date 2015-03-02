@@ -8,10 +8,10 @@ setwd("~/Desktop/GitHub/metrodef-db2/metrodef-db")
 # Create function that makes commuting adjacency matrix for a given state, hierarchically clusters
 # the counties based on commuting pct, and then displays a simple node-edge visualization of the 
 # result for a desired number of clusters
-Cluster = function(state.name, census.data, type="single", county.pop){
+Cluster = function(state.names, census.data, type="single", county.pop){
   
   # Gather commuting data only for particular state
-  state.data = census.data[census.data$RES_State == state.name,]
+  state.data = census.data[census.data$RES_State %in% state.names,]
   
   # Collect county names
   res.county.names = unique(state.data$RES_County)
@@ -127,8 +127,10 @@ HCExport<-function(hc, file_out){
 
 
 statenames = unique(census.data$RES_State)
+hc = Cluster(c('California', 'Massachusetts'), census.data, 'single', county.pop)
+PlotRadial(hc, paste0('radial/', 'CaliMA_radial.pdf'))
 for(st.name in statenames) {
-  hc = Cluster(st.name, census.data, 'single', county.pop)
+  hc = Cluster(c(st.name), census.data, 'single', county.pop)
   PlotRadial(hc, paste0('radial/', st.name,'_radial.pdf'))
   HCExport(hc, paste0('hcexport/', st.name,'_hclust.json'))
 }
