@@ -53,13 +53,13 @@ Cluster = function(state.names, census.data, type="single", county.pop){
   
   #print(reversedist)
   # adjust dendrogram for visibility
-  hci = hclust(reversedist, "single")
+  hci = hclust(reversedist, type)
   hc.mi = min(hci$height)
   print(hc.mi)
   
   submat = matrix(rep(hc.mi,each=addmsize*addmsize),nr=addmsize)
   hc.dist = as.dist(s - submat)
-  hc = hclust(hc.dist, "single")
+  hc = hclust(hc.dist, type)
   return(hc)
 }
 
@@ -131,7 +131,24 @@ hc = Cluster(c('California', 'Massachusetts'), census.data, 'single', county.pop
 PlotRadial(hc, paste0('radial/', 'CaliMA_radial.pdf'))
 for(st.name in statenames) {
   hc = Cluster(c(st.name), census.data, 'single', county.pop)
-  PlotRadial(hc, paste0('radial/', st.name,'_radial.pdf'))
+  hc.comp = Cluster(c(st.name), census.data, 'complete', county.pop)
+  hc.avg = Cluster(c(st.name), census.data, 'average', county.pop)
+  hc.wardd = Cluster(c(st.name), census.data, 'ward.D', county.pop)
+  hc.wardd2 = Cluster(c(st.name), census.data, 'ward.D2', county.pop)
+  hc.mcquitty = Cluster(c(st.name), census.data, 'single', county.pop)
+  hc.median = Cluster(c(st.name), census.data, 'median', county.pop)
+  hc.centroid = Cluster(c(st.name), census.data, 'centroid', county.pop)
+  
+  
+  PlotRadial(hc, paste0('radial_sing/', st.name,'_radial.pdf'))
+  PlotRadial(hc.comp, paste0('radial_comp/', st.name,'_radial.pdf'))
+  PlotRadial(hc.avg, paste0('radial_avg/', st.name,'_radial.pdf'))
+  PlotRadial(hc.wardd, paste0('radial_wardd/', st.name,'_radial.pdf'))
+  PlotRadial(hc.wardd2, paste0('radial_wardd2/', st.name,'_radial.pdf'))
+  PlotRadial(hc.mcquitty, paste0('radial_mcquitty/', st.name,'_radial.pdf'))
+  PlotRadial(hc.median, paste0('radial_median/', st.name,'_radial.pdf'))
+  PlotRadial(hc.centroid, paste0('radial_cent/', st.name,'_radial.pdf'))
+  
   HCExport(hc, paste0('hcexport/', st.name,'_hclust.json'))
 }
 
