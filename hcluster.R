@@ -65,6 +65,8 @@ HCluster = function(adj.mat, type="single", num.clusters=10, labs, county.pop, o
   for(i in 1:nrow(adj.mat)){
     cluster.list[[i]] = i
   }
+  # Initialize thresholds vector
+  thresholds = c(1)
   
   cluster.id.table = matrix(,nrow=length(labs),ncol=(length(labs)-num.clusters+1))
   cluster.id.table[,] = 0
@@ -95,14 +97,14 @@ HCluster = function(adj.mat, type="single", num.clusters=10, labs, county.pop, o
         } else if(type == "complete"){
           for(k in 1:length(cluster1)){
             for(t in 1:length(cluster2)){
-              cluster.dist[k,t] = min(adj.mat[cluster1[k],cluster2[t]],adj.mat[cluster2[t],cluster1[k]])
+              cluster.dist[k,t] = max(adj.mat[cluster1[k],cluster2[t]],adj.mat[cluster2[t],cluster1[k]])
             }
           }
           dist = min(cluster.dist)
         } else if(type == "average"){
           for(k in 1:length(cluster1)){
             for(t in 1:length(cluster2)){
-              cluster.dist[k,t] = (adj.mat[cluster1[[k]],cluster2[[t]]]+adj.mat[cluster2[[t]],cluster1[[k]]])/2
+              cluster.dist[k,t] = max(adj.mat[cluster1[[k]],cluster2[[t]]]+adj.mat[cluster2[[t]],cluster1[[k]]])
             }
           }
           dist = mean(cluster.dist)
@@ -113,6 +115,7 @@ HCluster = function(adj.mat, type="single", num.clusters=10, labs, county.pop, o
     
     # Find index of maximum element of the distance matrix
     max.dist = max(dist.mat)
+    thresholds = c(thresholds,max.dist)
     print(max.dist)
     if(max.dist==0 && output=="links"){
       links = ListLinks(cluster.list, labs, adj.mat, max.dist, county.pop)
@@ -127,6 +130,7 @@ HCluster = function(adj.mat, type="single", num.clusters=10, labs, county.pop, o
       View(fips.codes)
       View(labs)
       rownames(cluster.id.table) = fips.codes
+      colnames(cluster.id.table) = thresholds
       return(cluster.id.table)
     }
     max.ind = which(dist.mat == max.dist, arr.ind=TRUE)
@@ -163,6 +167,7 @@ HCluster = function(adj.mat, type="single", num.clusters=10, labs, county.pop, o
     View(fips.codes)
     View(labs)
     rownames(cluster.id.table) = fips.codes
+    colnames(cluster.id.table) = thresholds
     return(cluster.id.table)
   }
 }
