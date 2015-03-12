@@ -4,7 +4,11 @@
 Cluster = function(state.name, census.data, type="single", num.clusters=10, county.pop, output="links"){
   
   # Gather commuting data only for particular state
-  state.data = census.data[census.data$RES_State == state.name,]
+  state.data = data.frame()
+  for(k in 1:length(state.name)) {
+    state.data = rbind(state.data,census.data[census.data$RES_State == state.name[k],])
+  }
+  View(state.data)
   
   # Collect county names
   res.county.names = unique(state.data$RES_County)
@@ -12,6 +16,7 @@ Cluster = function(state.name, census.data, type="single", num.clusters=10, coun
   
   # Merge work and county names
   county.names = sort(union(res.county.names, wrk.county.names))
+  View(county.names)
   # Create adjacency matrix
   adj.mat = matrix( , nrow = length(county.names), ncol = length(county.names))
   adj.mat[,] = 0
@@ -31,6 +36,7 @@ Cluster = function(state.name, census.data, type="single", num.clusters=10, coun
   connected.rows = apply(adj.mat, 2, function(x){any(x>0.0001)})
   connected.cols = apply(adj.mat, 1, function(x){any(x>0.0001)})
   connected = connected.rows | connected.cols
+  View(connected)
 
   # Collect subset of county.names
   labs = county.names[connected]
@@ -39,6 +45,7 @@ Cluster = function(state.name, census.data, type="single", num.clusters=10, coun
   adj.mat = adj.mat[indices,indices]
   colnames(adj.mat) = labs
   rownames(adj.mat) = labs
+  View(adj.mat)
   # Hierarchically cluster according to distances
   links = HCluster(adj.mat, type, num.clusters,labs, county.pop, output)
  
@@ -107,9 +114,20 @@ HCluster = function(adj.mat, type="single", num.clusters=10, labs, county.pop, o
     # Find index of maximum element of the distance matrix
     max.dist = max(dist.mat)
     print(max.dist)
-    if(max.dist==0){
+    if(max.dist==0 && output=="links"){
       links = ListLinks(cluster.list, labs, adj.mat, max.dist, county.pop)
       return(links)
+    } else if(max.dist==0 && output=="cluster.col"){
+      cluster.id.table = as.data.frame(cluster.id.table)
+      fips.codes = rep(0,length(labs))
+      for(k in 1:length(labs)){
+        fips.codes[k] = paste0(census.data$RES_State_FIPS_Code[census.data$RES_County==labs[k]][1],
+                               census.data$RES_County_FIPS_Code[census.data$RES_County==labs[k]][1])
+      }
+      View(fips.codes)
+      View(labs)
+      rownames(cluster.id.table) = fips.codes
+      return(cluster.id.table)
     }
     max.ind = which(dist.mat == max.dist, arr.ind=TRUE)
     # Join "nearest" clusters
