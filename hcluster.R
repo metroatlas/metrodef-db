@@ -200,7 +200,7 @@ ListLinks = function(cluster.list, labs, adj.mat, dist.threshold, county.pop){
     curr.clust = unlist(cluster.list[[i]])
     for(j in 1:length(curr.clust)){
       for(k in 1:length(curr.clust))
-        if(TRUE){
+        if(j != k){
           pct = adj.mat[curr.clust[j],curr.clust[k]]
           if(TRUE){
             Source = c(Source, labs[curr.clust[j]])
