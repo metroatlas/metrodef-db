@@ -44,20 +44,28 @@ Cluster = function(state.names, census.data, type="single", county.pop){
   colnames(adj.mat) = labs
   rownames(adj.mat) = labs
 
+  # size n of nxn adjacency matrix is also the number of counties
+  matsize = ncol(adj.mat)
+  
+  # compute symmetrical integration matrix 
+  adj.diag = diag(adj.mat)
+  adj.mat <- 0.5 * (adj.mat + t(adj.mat))
+  diag(adj.mat) <- adj.diag 
+    # preserving the diagonal isn't actually necessary because as.dist() doesn't use the diagonal anyway
+  
+  
   # make it so that greater integration => shorter distances
   maxelement = max(adj.mat)
-  addmsize = ncol(adj.mat)
-  addmat<-  matrix(rep(maxelement,each=addmsize*addmsize),nr=addmsize)
+  addmat<-  matrix(rep(maxelement,each=matsize*matsize),nr=matsize)
   s = addmat - adj.mat
   reversedist = as.dist(s)
   
-  #print(reversedist)
   # adjust dendrogram for visibility
   hci = hclust(reversedist, type)
   hc.mi = min(hci$height)
   print(hc.mi)
   
-  submat = matrix(rep(hc.mi,each=addmsize*addmsize),nr=addmsize)
+  submat = matrix(rep(hc.mi,each=matsize*matsize),nr=matsize)
   hc.dist = as.dist(s - submat)
   hc = hclust(hc.dist, type)
   return(hc)
@@ -129,6 +137,10 @@ HCExport<-function(hc, file_out){
 statenames = unique(census.data$RES_State)
 hc = Cluster(c('California', 'Massachusetts'), census.data, 'single', county.pop)
 PlotRadial(hc, paste0('radial/', 'CaliMA_radial.pdf'))
+
+
+
+
 for(st.name in statenames) {
   hc = Cluster(c(st.name), census.data, 'single', county.pop)
   hc.comp = Cluster(c(st.name), census.data, 'complete', county.pop)
@@ -140,14 +152,14 @@ for(st.name in statenames) {
   hc.centroid = Cluster(c(st.name), census.data, 'centroid', county.pop)
   
   
-  PlotRadial(hc, paste0('radial_sing/', st.name,'_radial.pdf'))
-  PlotRadial(hc.comp, paste0('radial_comp/', st.name,'_radial.pdf'))
-  PlotRadial(hc.avg, paste0('radial_avg/', st.name,'_radial.pdf'))
-  PlotRadial(hc.wardd, paste0('radial_wardd/', st.name,'_radial.pdf'))
-  PlotRadial(hc.wardd2, paste0('radial_wardd2/', st.name,'_radial.pdf'))
-  PlotRadial(hc.mcquitty, paste0('radial_mcquitty/', st.name,'_radial.pdf'))
-  PlotRadial(hc.median, paste0('radial_median/', st.name,'_radial.pdf'))
-  PlotRadial(hc.centroid, paste0('radial_cent/', st.name,'_radial.pdf'))
+  PlotRadial(hc, paste0('radial_sing/', st.name,'_radial_sing.pdf'))
+  PlotRadial(hc.comp, paste0('radial_comp/', st.name,'_radial_comp.pdf'))
+  PlotRadial(hc.avg, paste0('radial_avg/', st.name,'_radial_avg.pdf'))
+  PlotRadial(hc.wardd, paste0('radial_wardd/', st.name,'_radial_wardd.pdf'))
+  PlotRadial(hc.wardd2, paste0('radial_wardd2/', st.name,'_radial_wardd2.pdf'))
+  PlotRadial(hc.mcquitty, paste0('radial_mcquitty/', st.name,'_radial_mcquitty.pdf'))
+  PlotRadial(hc.median, paste0('radial_median/', st.name,'_radial_median.pdf'))
+  PlotRadial(hc.centroid, paste0('radial_cent/', st.name,'_radial_cent.pdf'))
   
   HCExport(hc, paste0('hcexport/', st.name,'_hclust.json'))
 }
