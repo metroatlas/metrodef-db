@@ -1,8 +1,7 @@
-library(igraph)
+# First set the working directory to the repository
 
-setwd("~/Desktop/BillLane_Research/metrodef-db")
-dat = read.csv("clean.csv", fileEncoding="latin1")
-county.pop = read.csv("county_pop.csv", fileEncoding="latin1")
+dat = read.csv("clean_nrmv.csv", fileEncoding="latin1", stringsAsFactors=FALSE)
+county.pop = read.csv("county_pop.csv", fileEncoding="latin1", stringsAsFactors=FALSE)
 
 county.pop$State = as.character(county.pop$State)
 # Remove leading space in state names

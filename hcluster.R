@@ -6,9 +6,10 @@ Cluster = function(state.name, census.data, type="single", num.clusters=10, coun
   # Gather commuting data only for particular state
   state.data = data.frame()
   for(k in 1:length(state.name)) {
+    print(state.name[k])
     state.data = rbind(state.data,census.data[census.data$RES_State == state.name[k],])
+    print(nrow(state.data))
   }
-  View(state.data)
   
   # Collect county names
   res.county.names = unique(state.data$RES_County)
@@ -16,7 +17,7 @@ Cluster = function(state.name, census.data, type="single", num.clusters=10, coun
   
   # Merge work and county names
   county.names = sort(union(res.county.names, wrk.county.names))
-  View(county.names)
+  print(length(county.names))
   # Create adjacency matrix
   adj.mat = matrix( , nrow = length(county.names), ncol = length(county.names))
   adj.mat[,] = 0
@@ -36,16 +37,16 @@ Cluster = function(state.name, census.data, type="single", num.clusters=10, coun
   connected.rows = apply(adj.mat, 2, function(x){any(x>0.0001)})
   connected.cols = apply(adj.mat, 1, function(x){any(x>0.0001)})
   connected = connected.rows | connected.cols
-  View(connected)
 
   # Collect subset of county.names
   labs = county.names[connected]
+  print(length(labs))
   indices = 1:length(county.names)
   indices = indices[connected]
   adj.mat = adj.mat[indices,indices]
   colnames(adj.mat) = labs
   rownames(adj.mat) = labs
-  View(adj.mat)
+  
   # Hierarchically cluster according to distances
   links = HCluster(adj.mat, type, num.clusters,labs, county.pop, output)
  
