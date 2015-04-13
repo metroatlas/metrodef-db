@@ -128,8 +128,6 @@ HCluster = function(adj.mat, type="single", num.clusters=10, labs, county.pop, o
         fips.codes[k] = paste0(census.data$RES_State_FIPS_Code[census.data$RES_County==labs[k]][1],
                                census.data$RES_County_FIPS_Code[census.data$RES_County==labs[k]][1])
       }
-      View(fips.codes)
-      View(labs)
       rownames(cluster.id.table) = fips.codes
       colnames(cluster.id.table) = thresholds
       return(cluster.id.table)
@@ -165,8 +163,6 @@ HCluster = function(adj.mat, type="single", num.clusters=10, labs, county.pop, o
       fips.codes[k] = paste0(census.data$RES_State_FIPS_Code[census.data$RES_County==labs[k]][1],
                             census.data$RES_County_FIPS_Code[census.data$RES_County==labs[k]][1])
     }
-    View(fips.codes)
-    View(labs)
     rownames(cluster.id.table) = fips.codes
     colnames(cluster.id.table) = thresholds
     return(cluster.id.table)
