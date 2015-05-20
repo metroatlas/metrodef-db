@@ -40,6 +40,7 @@ for(i in 7:ncol(census.data)){
 dat_nomil = NULL
 census.data$RES_County = paste(census.data$RES_County, ", ", census.data$RES_State, sep="")
 census.data$WRK_County = paste(census.data$WRK_County, ", ", census.data$WRK_State, sep="")
+census.data$RES_FIPS = paste0(census.data$RES_State_FIPS_Code, census.data$RES_County_FIPS_Code)
 # Collect state names
 state.names = unique(census.data$RES_State)
 
