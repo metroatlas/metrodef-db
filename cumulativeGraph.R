@@ -1,7 +1,8 @@
-cumulativeGraph <- function(cgraph.d, filen, grid=false) {
+cumulativeGraph <- function(cgraph.d, filen, grid=FALSE) {
   # pass in the dataframe from the global environment
   #cgraph.d <<- data.frame(hci$height, 1:length(hci$height))
   print(cgraph.d)
+  
   #colnames(cgraph.d) <- c("threshold", "cumul")
   print('ok')
   if(!grid){

@@ -162,7 +162,14 @@ Cluster = function(area.data, type="single", county.pop, export.file){
   print("MAX HEIGHT")
   print(max(hci$height))
   cgraph.d <- data.frame(integ, res)
+
+
+  
   colnames(cgraph.d) <- c("height", "cumul")
+  temp.frame <- cgraph.d
+  temp.frame$Region <- export.file
+  assign("export.frame", rbind(export.frame, temp.frame), envir=.GlobalEnv)
+  #write.table(temp.frame, paste0(export.file, "data.csv"), sep=",")
   cumulativeGraph(cgraph.d, paste0(export.file, "_cumulative.pdf"))
   
     # h2 <- hci$height[1:length(hci$height)-1]
@@ -172,15 +179,15 @@ Cluster = function(area.data, type="single", county.pop, export.file){
     # hci$height <- (hci$height - h2)/ (res[2:length(res)] - r2)
   
     r2 <- res[1:length(res)-1]
-    h1 <- hci$height[1:length(hci$height)-1]
-    h2 <- hci$height[2:length(hci$height)]
+    h1 <- integ[1:length(integ)-1]
+    h2 <- integ[2:length(integ)]
     res <- res[2:length(res)]
   
     res <- (res - r2) / ((h1-h2))
   
     cgraph.d <- data.frame(h2[2:(length(h2)-20)], res[2:(length(res)-20)])
     colnames(cgraph.d) <- c("height", "cumul")
-    cumulativeGraph(cgraph.d, "test102.pdf")
+    cumulativeGraph(cgraph.d, paste0(export.file, "_cumulative_d1.pdf"))
     #PlotCumulativeGraph(hci, 'test5.pdf')
   
   
@@ -269,20 +276,27 @@ HCExport<-function(hc, file_out){
 # statenames = unique(census.data$RES_State)
 # hc = ClusterByState(c('California', 'Massachusetts'), census.data, 'single', county.pop)
 # PlotRadial(hc, paste0('radial/', 'CaliMA_radial.pdf'))
+
+
 regions <- getClusters(3099, "us_avg_linkage.csv")
 print(regions)
+
+export.frame <<- data.frame(height=numeric(), cumul=numeric(), Region=character())
 for(i in 1:length(regions)){
   if(length(regions[[i]]) > 1 ){
     hc <- ClusterByRegion(regions[[i]], census.data, 'average', county.pop, paste0("Region", i))
   }
 }
+print(export.frame)
+colnames(export.frame) <- c("integration", "cumulative", "Region")
+write.table(export.frame, "exportcumul2.csv", sep=",")
 
 hc = ClusterByState("California", census.data, 'average', county.pop)
 hc = ClusterByState("New Jersey", census.data, 'average', county.pop)
 
-dir.create('linegraph_sing', showWarnings = FALSE)
-dir.create('linegraph_comp', showWarnings = FALSE)
-dir.create('linegraph_avg', showWarnings = FALSE)
+#dir.create('linegraph_sing', showWarnings = FALSE)
+#dir.create('linegraph_comp', showWarnings = FALSE)
+#dir.create('linegraph_avg', showWarnings = FALSE)
 
 for(st.name in state.names) {
   hc = ClusterByState(c(st.name), census.data, 'single', county.pop)
