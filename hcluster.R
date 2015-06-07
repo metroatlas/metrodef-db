@@ -6,9 +6,18 @@ library(rjson)
 library(grid)
 library(gridExtra)
 require(rjson)
+
 setwd("~/Desktop/GitHub/metrodef-db2/metrodef-db")
 
+cumulativeGraph <- function(cgraph.d, filen) {
+  #print(cgraph.d) # for debugging only
+  p <- ggplot(cgraph.d, aes(x = cgraph.d$height, y = cgraph.d$cumul), environment=environment()) + geom_line()
+  ggsave(filename=filen, plot=p)
+  return(p)
+}
+
 # 3099th column --> X1.34703368193124e.06
+# This function gets clusters from 
 getClusters = function(colnum, csvname){
   data <- read.csv(csvname)
   clustercol <- data[[colnum]]
@@ -30,6 +39,7 @@ getClusters = function(colnum, csvname){
 # Create function that makes commuting adjacency matrix for a given state, hierarchically clusters
 # the counties based on commuting pct, and then displays a simple node-edge visualization of the
 # result for a desired number of clusters
+
 
 ClusterByState = function(state.names, census.data, type="single", county.pop){
   area.data <- census.data[census.data$RES_State %in% state.names,]
@@ -165,12 +175,17 @@ Cluster = function(area.data, type="single", county.pop, export.file){
 
 
   
-  colnames(cgraph.d) <- c("height", "cumul")
-  temp.frame <- cgraph.d
-  temp.frame$Region <- export.file
-  assign("export.frame", rbind(export.frame, temp.frame), envir=.GlobalEnv)
+  colnames(cgraph.d) <- c("threshold", "cumul")
+
+# export data for shiny app
+#   temp.frame <- cgraph.d
+#   temp.frame$Region <- export.file
+#   assign("export.frame", rbind(export.frame, temp.frame), envir=.GlobalEnv)
+
   #write.table(temp.frame, paste0(export.file, "data.csv"), sep=",")
   cumulativeGraph(cgraph.d, paste0(export.file, "_cumulative.pdf"))
+  cgraph.d$cumul = cgraph.d$cumul / length(hci$height)
+  cumulativeGraph(cgraph.d, paste0(export.file, "_cumulativeNorm.pdf"))
   
     # h2 <- hci$height[1:length(hci$height)-1]
     # r2 <- res[1:length(res)-1]
@@ -297,6 +312,9 @@ hc = ClusterByState("New Jersey", census.data, 'average', county.pop)
 #dir.create('linegraph_sing', showWarnings = FALSE)
 #dir.create('linegraph_comp', showWarnings = FALSE)
 #dir.create('linegraph_avg', showWarnings = FALSE)
+
+#whole US
+hc = Cluster(census.data, 'average', county.pop, "AllUS")
 
 for(st.name in state.names) {
   hc = ClusterByState(c(st.name), census.data, 'single', county.pop)
