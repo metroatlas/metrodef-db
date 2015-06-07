@@ -9,54 +9,82 @@ require(rjson)
 
 setwd("~/Desktop/GitHub/metrodef-db2/metrodef-db")
 
+# Function: cumulativeGraph
+# -------------------------
+# Takes a dataframe and produces a graph.
+# Dataframe must have labels: threshold, cumul
+# Resulting graph: threshold on x axis, cumul (total number/percent of metro areas when cutting the hclust 
+# object at that threshold) on y axis
 cumulativeGraph <- function(cgraph.d, filen) {
   #print(cgraph.d) # for debugging only
-  p <- ggplot(cgraph.d, aes(x = cgraph.d$height, y = cgraph.d$cumul), environment=environment()) + geom_line()
+  p <- ggplot(cgraph.d, aes(x = cgraph.d$threshold, y = cgraph.d$cumul), environment=environment()) + geom_line()
   ggsave(filename=filen, plot=p)
   return(p)
 }
 
-# 3099th column --> X1.34703368193124e.06
-# This function gets clusters from 
+# Function: ClusterByState
+# ------------------------
+# This function gets a definition of clusters from a .csv file, and produces a list of clusters. 
+# Output is a list that contains, for each region, a vector with all the fips codes in that region.
+# EXAMPLE USAGE:
+# For the large commute sheds we used in the project, we used the 3099th column (colname = 3099)
+# labelled "X1.34703368193124e.06" in the .csv file named "us_avg_linkage."
+# The following line can be found in the main code at the end of this file:
+#       regions <- getClusters(3099, "us_avg_linkage.csv")
 getClusters = function(colnum, csvname){
-  data <- read.csv(csvname)
-  clustercol <- data[[colnum]]
+  data <- read.csv(csvname) 
+  clustercol <- data[[colnum]] # read data from the specified column into a vector
+  numclust <- max(clustercol) # total number of clusters is the maximum cluster label in that column
 
-  numclust <- max(clustercol)
-
-  #correct fips codes
+  # Correct fips codes with leading zeroes if applicable; not translated into numeric value. These are extracted from the first column of the
+  # .csv file.
   fipscodes <- sprintf("%05d", data[[1]])
   
-  clist <- list()
-  for(i in 1:numclust){
+  clist <- list() # new list
+  
+  # i = current cluster number (used to identify what counties belong in which clusters); counties with the same "cluster number"
+  # are in the same cluster.
+  for(i in 1:numclust){ 
+    # Get the indecis of the clustercol vector (the column we're extracting the cluster definitions from) that match the current cluster number.
     matches <- which(clustercol == i)
+    
+    # Get the corresponding fips codes from the fipscodes vector.
     allc <- fipscodes[matches]
+    
+    # Append this vector of matching fips codes to our list.
     clist <- c(clist, list(allc))
   }
   return(clist)
 }
 
-# Create function that makes commuting adjacency matrix for a given state, hierarchically clusters
-# the counties based on commuting pct, and then displays a simple node-edge visualization of the
-# result for a desired number of clusters
-
-
+# Function: ClusterByState
+# ------------------------
+# Gather commuting data only for particular state then call Cluster with this subset of the 
+# commuting data.
 ClusterByState = function(state.names, census.data, type="single", county.pop){
   area.data <- census.data[census.data$RES_State %in% state.names,]
   Cluster(area.data, type, county.pop, state.names[1]) #TODO: concatenate state names for output filename
 }
 
+# Function: ClusterByRegion
+# -------------------------
+# Gather commuting data for specified residence fips codes then call Cluster with this subset
+# of the commuting data.
 ClusterByRegion = function(fips.codes, census.data, type="single",county.pop, filename="RegionX"){
-  print(fips.codes)
+  #print(fips.codes) # for debugging only
+  
+  # Gets data where the residence fips code matches one of the fips codes we're looking for.
   area.data = census.data[census.data$RES_FIPS %in% fips.codes,]
+  
+  # Cluster with this subset of the commuting matrix data.
   Cluster(area.data, type, county.pop, filename)
 }
 
+# Function: Cluster
+# -----------------
+# Makes commuting adjacency matrix for a given subset of the commuting data, 
+# then hierarchically clusters the counties based on commuting pct.
 Cluster = function(area.data, type="single", county.pop, export.file){
-  print("hi")
-  # Gather commuting data only for particular state
-  
-  
   # Collect county names
   res.county.names = unique(area.data$RES_County)
   wrk.county.names = unique(area.data$WRK_County)
@@ -89,18 +117,18 @@ Cluster = function(area.data, type="single", county.pop, export.file){
   colnames(adj.mat) = labs
   rownames(adj.mat) = labs
   
-  # size n of nxn adjacency matrix is also the number of counties
+  # Size n of n by n adjacency matrix is also the number of counties
   matsize = ncol(adj.mat)
   
-  # compute symmetrical integration matrix
+  # Compute symmetrical integration matrix
   adj.diag <- diag(adj.mat)
   adj.mat <- (adj.mat + t(adj.mat))
+
+  # This line that preserves the diagonal isn't actually necessary because the matrix -> distance object
+  # transformation (as.dist()) just drops the diagonal without using it anyway
   diag(adj.mat) <- adj.diag
-  # preserving the diagonal isn't actually necessary because as.dist() doesn't use the diagonal anyway
-  
 
-
-  # make it so that greater integration => shorter distances
+  # Make it so that greater integration => shorter distances
   maxelement <- max(adj.mat)
   print(which(adj.mat == maxelement))
   print("maxindexprinted")
@@ -113,46 +141,11 @@ Cluster = function(area.data, type="single", county.pop, export.file){
   reversedist = as.dist(s)
   
   hci = hclust(reversedist, type)
-  #print(hci$height)
-  # analysis on initial hclust object
-  # # this will get the names of the first link
-  # cd <- cophenetic(hci)
-  #h <- hci$height
-  # i_1 <<- which(as.matrix(cd)==h[1], arr.ind=T)
-  # firstv <- (i_1[,1]==i_1[,2])
-  # firstclust <- names(firstv[firstv==FALSE])
-  # print(firstclust)
+
   res <- hci$height
-#   integ <- hci$height
-#   links.dist <- sort(unique(cophenetic(hci)))
-#   print(links.dist)
-#   coph.mat <- as.matrix(cophenetic(hci))
-#   print("INTEGRATION")
+
    for(cutnum in length(hci$height):1){
-     clusMember <- cutree(hci, cutnum)
-#     if(cutnum == length(hci$height)){
-#       integ[cutnum] <- 0
-#     } else {
-#       clus.dist <- links.dist[length(hci$height) - cutnum] # +1?
-#       print(clus.dist)
-#         # distance to search for in the cophenetic distances
-#       
-#       clusLinkRows <- rownames(coph.mat)[floor(which(coph.mat==clus.dist)/nrow(coph.mat))]
-#       clusLinkCols <- colnames(coph.mat)[which(coph.mat==clus.dist)%%ncol(coph.mat)]
-#         # get row and column pair labels for the links we want to extract the original thresholds from
-#       print(clusLinkRows)
-#       integSum <- 0
-#       for(i in 1:length(clusLinkRows)){
-#         print(c(clusLinkRows[i], clusLinkCols[i]))
-#         if(!is.na(clusLinkRows[i]) && !is.na(clusLinkCols[i])){
-#           print(adj.mat[clusLinkRows[i], clusLinkCols[i]])
-#           integSum <- integSum + adj.mat[clusLinkRows[i], clusLinkCols[i]]/(2 * length(clusLinkRows))
-#             # divide by 2 because the distance matrix (cophenetic dist) to matrix conversion double counts links
-#         }
-#       }
-#       print(integSum)
-#       integ[cutnum] <- integSum
-#     }
+    clusMember <- cutree(hci, cutnum)
     metroareas <- 0
     for(i in 1:cutnum){
       currClust <- names(clusMember[clusMember == i])
@@ -294,7 +287,7 @@ HCExport<-function(hc, file_out){
 
 
 regions <- getClusters(3099, "us_avg_linkage.csv")
-print(regions)
+# print(regions) # for debugging only
 
 export.frame <<- data.frame(height=numeric(), cumul=numeric(), Region=character())
 for(i in 1:length(regions)){
