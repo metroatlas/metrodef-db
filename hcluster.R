@@ -9,7 +9,16 @@ require(rjson)
 
 setwd("~/Desktop/GitHub/metrodef-db2/metrodef-db")
 
-# Function: cumulativeGraph
+
+
+# =========== C L U S T E R I N G ============
+# These functions, cumulativeGraph, getClusters, ClusterByState, ClusterByRegion, and Cluster, all provide functionality to transform commuting data
+# into a distance matrix and then produce a hclust object. getClusters parses clustering data to get area definitions. ClusterByState and ClusterByRegion
+# take a subset of data and pass it to Cluster. Cluster creates the distance matrix, runs hierarchical clustering, and then calls cumulativeGraph
+# to produce an overview of the clustering behavior. The hclust object returned by Cluster can be further processed.
+
+
+# FUNCTION: cumulativeGraph
 # -------------------------
 # Takes a dataframe and produces a graph.
 # Dataframe must have labels: threshold, cumul
@@ -22,7 +31,7 @@ cumulativeGraph <- function(cgraph.d, filen) {
   return(p)
 }
 
-# Function: ClusterByState
+# FUNCTION: getClusters
 # ------------------------
 # This function gets a definition of clusters from a .csv file, and produces a list of clusters. 
 # Output is a list that contains, for each region, a vector with all the fips codes in that region.
@@ -57,16 +66,16 @@ getClusters = function(colnum, csvname){
   return(clist)
 }
 
-# Function: ClusterByState
+# FUNCTION: ClusterByState
 # ------------------------
 # Gather commuting data only for particular state then call Cluster with this subset of the 
 # commuting data.
 ClusterByState = function(state.names, census.data, type="single", county.pop){
   area.data <- census.data[census.data$RES_State %in% state.names,]
-  Cluster(area.data, type, county.pop, state.names[1]) #TODO: concatenate state names for output filename
+  return(Cluster(area.data, type, county.pop, state.names[1])) #TODO: concatenate state names for output filename
 }
 
-# Function: ClusterByRegion
+# FUNCTION: ClusterByRegion
 # -------------------------
 # Gather commuting data for specified residence fips codes then call Cluster with this subset
 # of the commuting data.
@@ -77,10 +86,10 @@ ClusterByRegion = function(fips.codes, census.data, type="single",county.pop, fi
   area.data = census.data[census.data$RES_FIPS %in% fips.codes,]
   
   # Cluster with this subset of the commuting matrix data.
-  Cluster(area.data, type, county.pop, filename)
+  return(Cluster(area.data, type, county.pop, filename))
 }
 
-# Function: Cluster
+# FUNCTION: Cluster
 # -----------------
 # Makes commuting adjacency matrix for a given subset of the commuting data, 
 # then hierarchically clusters the counties based on commuting pct.
@@ -208,6 +217,9 @@ Cluster = function(area.data, type="single", county.pop, export.file){
   return(hc)
 }
 
+
+# ======== D E N D R O G R A M S ==========
+#
 PlotRadial = function(hc, file.path="") {
   if(file.path != "") {
     # uses the ape library to plot a radial dendrogram
@@ -234,36 +246,12 @@ PlotTree = function(hc, file.path="") {
   return
 }
 
-PlotCumulativeGraph = function(hc, file.path="") {
-  if(file.path != "") {
-    print('hi')
-    pdf(file=file.path, width=20, height=20)
-    cumulativeGraph(hc)
-    dev.off()
-  } else {
-    cumulativeGraph(hc)
-  }
-  return
-}
-
-#convert output from hclust into a nested JSON file
+# FUNCTION: HCExport
+# ------------------
+# Convert output from hclust into a nested JSON file. This makes it easy to render the tree in d3.js.
 HCExport<-function(hc, file_out){
   labels<-hc$labels
   merge<-data.frame(hc$merge)
-  
-  #cophenetic distances
-  cd = cophenetic(hc)
-  
-  #heights
-  h = hc$height
-  print(h)
-  
-  # this will get the name of the first link
-  #  i_1 = which(as.matrix(cd)==h[1], arr.ind=T)
-  #   print(i_1)
-  #   print(colnames(as.matrix(cd))[i_1[1]])
-  #   print(i_1[1])
-  #   print(min(as.matrix(cd)[42,]))
   
   # Create nested node structure
   for (i in (1:nrow(merge))) {
@@ -274,39 +262,40 @@ HCExport<-function(hc, file_out){
   }
   eval(parse(text=paste0("JSON<-toJSON(node",nrow(merge), ")")))
   
-  #wrap nested JSON file into d3 html
+  # Wrap nested JSON file into d3 html
   fileConn<-file(file_out)
   writeLines(paste0("data='", JSON, "'"), fileConn)
   close(fileConn)
 }
 
+# ========= M A I N ==========
+# statenames = unique(census.data$RES_State) # for debugging only
 
-# statenames = unique(census.data$RES_State)
-# hc = ClusterByState(c('California', 'Massachusetts'), census.data, 'single', county.pop)
-# PlotRadial(hc, paste0('radial/', 'CaliMA_radial.pdf'))
+# hc = ClusterByState(c('California', 'Massachusetts'), census.data, 'average', county.pop) # Cluster 2 random states - testing only
+# PlotRadial(hc, paste0('radial/', 'CaliMA_radial.pdf')) # plot a radial graph with the 2 test states
 
-
-regions <- getClusters(3099, "us_avg_linkage.csv")
+regions <- getClusters(3099, "us_avg_linkage.csv") # you only need to run this once and then the regions list can be re-used 
 # print(regions) # for debugging only
 
-export.frame <<- data.frame(height=numeric(), cumul=numeric(), Region=character())
+# export.frame <<- data.frame(height=numeric(), cumul=numeric(), Region=character()) # export for Shiny app -- global dataframe variabl
 for(i in 1:length(regions)){
   if(length(regions[[i]]) > 1 ){
     hc <- ClusterByRegion(regions[[i]], census.data, 'average', county.pop, paste0("Region", i))
   }
 }
-print(export.frame)
-colnames(export.frame) <- c("integration", "cumulative", "Region")
-write.table(export.frame, "exportcumul2.csv", sep=",")
+
+#print(export.frame) # for debuggin purposes (export for Shiny app)
+#colnames(export.frame) <- c("integration", "cumulative", "Region") # export for Shiny app
+#write.table(export.frame, "exportcumul2.csv", sep=",") # export for Shiny app
 
 hc = ClusterByState("California", census.data, 'average', county.pop)
 hc = ClusterByState("New Jersey", census.data, 'average', county.pop)
 
-#dir.create('linegraph_sing', showWarnings = FALSE)
-#dir.create('linegraph_comp', showWarnings = FALSE)
-#dir.create('linegraph_avg', showWarnings = FALSE)
+#dir.create('linegraph_sing', showWarnings = FALSE) # data export purposes
+#dir.create('linegraph_comp', showWarnings = FALSE) # data export purposes
+#dir.create('linegraph_avg', showWarnings = FALSE) # data export purposes
 
-#whole US
+# Cluster all of US (use the entire set of commuting data) using avg linkage. Export file => "AllUS"
 hc = Cluster(census.data, 'average', county.pop, "AllUS")
 
 for(st.name in state.names) {
@@ -319,9 +308,6 @@ for(st.name in state.names) {
   #   hc.median = ClusterByState(c(st.name), census.data, 'median', county.pop)
   #   hc.centroid = ClusterByState(c(st.name), census.data, 'centroid', county.pop)
   #
-  #     PlotCumulativeGraph(hc, paste0('linegraph_sing/', st.name, '_linegraph_sing.pdf'))
-  #     PlotCumulativeGraph(hc.comp, paste0('linegraph_comp/', st.name, '_linegraph_comp.pdf'))
-  #     PlotCumulativeGraph(hc.avg, paste0('linegraph_avg/', st.name, '_linegraph_avg.pdf'))
   #   PlotRadial(hc, paste0('radial_sing/', st.name,'_radial_sing.pdf'))
   #   PlotRadial(hc.comp, paste0('radial_comp/', st.name,'_radial_comp.pdf'))
   #PlotRadial(hc.avg, paste0('radial_avg/', st.name,'_radial_avg.pdf'))
@@ -341,7 +327,4 @@ for(st.name in state.names) {
   
   
 }
-
-# labelColors = c("#CDB380", "#036564", "#EB6841", "#EDC951")
-# categories = cutree(hc,k=4)
 
