@@ -70,16 +70,20 @@ getClusters = function(colnum, csvname){
 # ------------------------
 # Gather commuting data only for particular state then call Cluster with this subset of the 
 # commuting data.
-ClusterByState = function(state.names, census.data, type="single", county.pop){
+# *** OUTPUT FILENAME export.file MAY BE A RELATIVE PATH (will be found relative to working directory) *** (see top of this R file -- SETUP)
+ClusterByState = function(state.names, census.data, type="single", county.pop, export.file=""){
   area.data <- census.data[census.data$RES_State %in% state.names,]
-  return(Cluster(area.data, type, county.pop, state.names[1])) #TODO: concatenate state names for output filename
+  if(export.file == ""){
+    export.file = state.names[1]
+  }
+  return(Cluster(area.data, type, county.pop, export.file))
 }
 
 # FUNCTION: ClusterByRegion
 # -------------------------
 # Gather commuting data for specified residence fips codes then call Cluster with this subset
 # of the commuting data.
-# *** OUTPUT FILENAME MAY BE A RELATIVE PATH (will be found relative to working directory) *** (see top of this R file -- SETUP)
+# *** OUTPUT FILENAME export.file MAY BE A RELATIVE PATH (will be found relative to working directory) *** (see top of this R file -- SETUP)
 ClusterByRegion = function(fips.codes, census.data, type="single",county.pop, export.file="RegionX"){
   #print(fips.codes) # for debugging only
   
