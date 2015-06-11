@@ -139,19 +139,14 @@ Cluster = function(area.data, type="single", county.pop, export.file){
 
   # Make it so that greater integration => shorter distances
   maxelement <- max(adj.mat)
-  print(which(adj.mat == maxelement))
-  print("maxindexprinted")
-  print(maxelement)
-  print(which(adj.mat > 0.1))
-  print(adj.mat[47])
+
   addmat <-  matrix(rep(maxelement,each=matsize*matsize),nr=matsize)
   s = addmat - adj.mat
   print(s[47])
   reversedist = as.dist(s)
   
   hci = hclust(reversedist, type)
-
-  res <- hci$height
+  res <- hci$height # initialize the vector to be of length hci$height
 
    for(cutnum in length(hci$height):1){
     clusMember <- cutree(hci, cutnum)
@@ -169,48 +164,26 @@ Cluster = function(area.data, type="single", county.pop, export.file){
   print(res)
   
   
-  integ <- maxelement - hci$height
-    # change 5/18: compute integ above
-  print("MAX HEIGHT")
-  print(max(hci$height))
-  cgraph.d <- data.frame(integ, res)
+  integ <- maxelement - hci$height # reverse height to get integration
 
-
+  #print("MAX HEIGHT") # for debugging only
+  #print(max(hci$height)) # for debugging only
   
+  # set up the dataframe to create the cumulative graph
+  cgraph.d <- data.frame(integ, res)
   colnames(cgraph.d) <- c("threshold", "cumul")
 
-# export data for shiny app
-#   temp.frame <- cgraph.d
-#   temp.frame$Region <- export.file
-#   assign("export.frame", rbind(export.frame, temp.frame), envir=.GlobalEnv)
-
-  #write.table(temp.frame, paste0(export.file, "data.csv"), sep=",")
+  # export data for shiny app -- only use if you want to export data
+  # temp.frame <- cgraph.d
+  # temp.frame$Region <- export.file
+  # assign("export.frame", rbind(export.frame, temp.frame), envir=.GlobalEnv)
+  
   cumulativeGraph(cgraph.d, paste0(export.file, "_cumulative.pdf"))
   cgraph.d$cumul = cgraph.d$cumul / length(hci$height)
   cumulativeGraph(cgraph.d, paste0(export.file, "_cumulativeNorm.pdf"))
   
-    # h2 <- hci$height[1:length(hci$height)-1]
-    # r2 <- res[1:length(res)-1]
-    # hci$height <- hci$height[2:length(hci$height)]
-    #
-    # hci$height <- (hci$height - h2)/ (res[2:length(res)] - r2)
-  
-    r2 <- res[1:length(res)-1]
-    h1 <- integ[1:length(integ)-1]
-    h2 <- integ[2:length(integ)]
-    res <- res[2:length(res)]
-  
-    res <- (res - r2) / ((h1-h2))
-  
-    cgraph.d <- data.frame(h2[2:(length(h2)-20)], res[2:(length(res)-20)])
-    colnames(cgraph.d) <- c("height", "cumul")
-    cumulativeGraph(cgraph.d, paste0(export.file, "_cumulative_d1.pdf"))
-    #PlotCumulativeGraph(hci, 'test5.pdf')
-  
-  
-  # adjust dendrogram for visibility
+  # adjust dendrogram for visibility (while keeping the scale) and return the hclust object
   hc.mi = min(hci$height)
-  #print(hc.mi)
   submat = matrix(rep(hc.mi,each=matsize*matsize),nr=matsize)
   hc.dist = as.dist(s - submat)
   hc = hclust(hc.dist, type)
@@ -302,15 +275,11 @@ for(st.name in state.names) {
   hc = ClusterByState(c(st.name), census.data, 'single', county.pop)
   hc.comp = ClusterByState(c(st.name), census.data, 'complete', county.pop)
   hc.avg = ClusterByState(c(st.name), census.data, 'average', county.pop)
-  #   hc.wardd = ClusterByState(c(st.name), census.data, 'ward.D', county.pop)
-  #   hc.wardd2 = ClusterByState(c(st.name), census.data, 'ward.D2', county.pop)
-  #   hc.mcquitty = ClusterByState(c(st.name), census.data, 'single', county.pop)
-  #   hc.median = ClusterByState(c(st.name), census.data, 'median', county.pop)
-  #   hc.centroid = ClusterByState(c(st.name), census.data, 'centroid', county.pop)
-  #
+
+  # Example usage below - not actually used for presentation
   #   PlotRadial(hc, paste0('radial_sing/', st.name,'_radial_sing.pdf'))
   #   PlotRadial(hc.comp, paste0('radial_comp/', st.name,'_radial_comp.pdf'))
-  #PlotRadial(hc.avg, paste0('radial_avg/', st.name,'_radial_avg.pdf'))
+  #   PlotRadial(hc.avg, paste0('radial_avg/', st.name,'_radial_avg.pdf'))
   #   PlotRadial(hc.wardd, paste0('radial_wardd/', st.name,'_radial_wardd.pdf'))
   #   PlotRadial(hc.wardd2, paste0('radial_wardd2/', st.name,'_radial_wardd2.pdf'))
   #   PlotRadial(hc.mcquitty, paste0('radial_mcquitty/', st.name,'_radial_mcquitty.pdf'))
@@ -318,13 +287,6 @@ for(st.name in state.names) {
   #   PlotRadial(hc.centroid, paste0('radial_cent/', st.name,'_radial_cent.pdf'))
   #
   #   HCExport(hc, paste0('hcexport/', st.name,'_hclust.json'))
-  
-  #numclust = 1:length(hc.avg$height); #number of clusters
-  # we actually want to restrict numclust to number of clusters w/ population >= 50k
-  # integrate county population using county.pop
-  # but first we need to find out which counties are actually involved in a cluster
-  #       -- we can keep a running total as we go to the next height that is clustered
-  
   
 }
 
