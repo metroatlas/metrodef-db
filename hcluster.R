@@ -7,9 +7,8 @@ library(grid)
 library(gridExtra)
 require(rjson)
 
+# SETUP: change this line
 setwd("~/Desktop/GitHub/metrodef-db2/metrodef-db")
-
-
 
 # =========== C L U S T E R I N G ============
 # These functions, cumulativeGraph, getClusters, ClusterByState, ClusterByRegion, and Cluster, all provide functionality to transform commuting data
@@ -38,7 +37,8 @@ cumulativeGraph <- function(cgraph.d, filen) {
 # EXAMPLE USAGE:
 # For the large commute sheds we used in the project, we used the 3099th column (colname = 3099)
 # labelled "X1.34703368193124e.06" in the .csv file named "us_avg_linkage."
-# The following line can be found in the main code at the end of this file:
+# *** CSV FILE MUST BE IN YOUR WORKING DIRECTORY *** (see top of this R file -- SETUP)
+# Example usage from main:
 #       regions <- getClusters(3099, "us_avg_linkage.csv")
 getClusters = function(colnum, csvname){
   data <- read.csv(csvname) 
@@ -79,20 +79,22 @@ ClusterByState = function(state.names, census.data, type="single", county.pop){
 # -------------------------
 # Gather commuting data for specified residence fips codes then call Cluster with this subset
 # of the commuting data.
-ClusterByRegion = function(fips.codes, census.data, type="single",county.pop, filename="RegionX"){
+# *** OUTPUT FILENAME MAY BE A RELATIVE PATH (will be found relative to working directory) *** (see top of this R file -- SETUP)
+ClusterByRegion = function(fips.codes, census.data, type="single",county.pop, export.file="RegionX"){
   #print(fips.codes) # for debugging only
   
   # Gets data where the residence fips code matches one of the fips codes we're looking for.
   area.data = census.data[census.data$RES_FIPS %in% fips.codes,]
   
   # Cluster with this subset of the commuting matrix data.
-  return(Cluster(area.data, type, county.pop, filename))
+  return(Cluster(area.data, type, county.pop, export.file))
 }
 
 # FUNCTION: Cluster
 # -----------------
 # Makes commuting adjacency matrix for a given subset of the commuting data, 
 # then hierarchically clusters the counties based on commuting pct.
+# *** OUTPUT FILENAME export.file MAY BE A RELATIVE PATH (will be found relative to working directory) *** (see top of this R file -- SETUP)
 Cluster = function(area.data, type="single", county.pop, export.file){
   # Collect county names
   res.county.names = unique(area.data$RES_County)
@@ -193,10 +195,11 @@ Cluster = function(area.data, type="single", county.pop, export.file){
 
 # ======== D E N D R O G R A M S ==========
 #
-PlotRadial = function(hc, file.path="") {
-  if(file.path != "") {
+# *** OUTPUT FILENAME export.file MAY BE A RELATIVE PATH (will be found relative to working directory) *** (see top of this R file -- SETUP)
+PlotRadial = function(hc, export.file="") {
+  if(export.file != "") {
     # uses the ape library to plot a radial dendrogram
-    pdf(file=file.path, width=20, height=20)
+    pdf(file=export.file, width=20, height=20)
     par(mar=c(4,1,3,6))
     plot(as.phylo(hc), type="fan", cex=0.8)
     dev.off()
@@ -206,10 +209,10 @@ PlotRadial = function(hc, file.path="") {
   return
 }
 
-PlotTree = function(hc, file.path="") {
+PlotTree = function(hc, export.file="") {
   ggd <- ggdendrogram(hc, rotate=TRUE, size=1)
-  if(file.path != "") {
-    pdf(file=file.path, width=20, height=20)
+  if(export.file != "") {
+    pdf(file=export.file, width=20, height=20)
     plot(ggd)
     par(mar=c(4,1,3,6))
     dev.off()
@@ -222,7 +225,8 @@ PlotTree = function(hc, file.path="") {
 # FUNCTION: HCExport
 # ------------------
 # Convert output from hclust into a nested JSON file. This makes it easy to render the tree in d3.js.
-HCExport<-function(hc, file_out){
+# *** OUTPUT FILENAME export.file MAY BE A RELATIVE PATH (will be found relative to working directory) *** (see top of this R file -- SETUP)
+HCExport<-function(hc, export.file){
   labels<-hc$labels
   merge<-data.frame(hc$merge)
   
@@ -236,7 +240,7 @@ HCExport<-function(hc, file_out){
   eval(parse(text=paste0("JSON<-toJSON(node",nrow(merge), ")")))
   
   # Wrap nested JSON file into d3 html
-  fileConn<-file(file_out)
+  fileConn<-file(export.file)
   writeLines(paste0("data='", JSON, "'"), fileConn)
   close(fileConn)
 }
@@ -247,7 +251,9 @@ HCExport<-function(hc, file_out){
 # hc = ClusterByState(c('California', 'Massachusetts'), census.data, 'average', county.pop) # Cluster 2 random states - testing only
 # PlotRadial(hc, paste0('radial/', 'CaliMA_radial.pdf')) # plot a radial graph with the 2 test states
 
-regions <- getClusters(3099, "us_avg_linkage.csv") # you only need to run this once and then the regions list can be re-used 
+# you only need to run this once and then the regions list can be re-used 
+regions <- getClusters(3099, "us_avg_linkage.csv") # make sure "us_avg_linkage.csv" is in your working directory
+
 # print(regions) # for debugging only
 
 # export.frame <<- data.frame(height=numeric(), cumul=numeric(), Region=character()) # export for Shiny app -- global dataframe variabl
@@ -277,6 +283,7 @@ for(st.name in state.names) {
   hc.avg = ClusterByState(c(st.name), census.data, 'average', county.pop)
 
   # Example usage below - not actually used for presentation
+  # All filepaths are relative to working directory
   #   PlotRadial(hc, paste0('radial_sing/', st.name,'_radial_sing.pdf'))
   #   PlotRadial(hc.comp, paste0('radial_comp/', st.name,'_radial_comp.pdf'))
   #   PlotRadial(hc.avg, paste0('radial_avg/', st.name,'_radial_avg.pdf'))
